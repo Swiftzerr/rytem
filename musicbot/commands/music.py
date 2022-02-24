@@ -92,7 +92,7 @@ class Music(commands.Cog):
             audiocontroller.playlist.loop = False
             await send_message(ctx, Emojis.loop + " Disabled")
 
-    @commands.command(name='pause', description=config.HELP_PAUSE_LONG, help=config.HELP_PAUSE_SHORT)
+    @commands.slash_command(description="Pauses the currently playing music")
     async def pause(self, ctx):
         current_guild = ctx.guild
 
@@ -131,7 +131,7 @@ class Music(commands.Cog):
             sum([int(song.info.duration if song.info.duration else 0) for song in list(playlist.playque)]))
 
         embed = discord.Embed(title=":scroll: {} songs in queue | {} total length".format(
-            len(playlist.playque), total_runtime), color=config.EMBED_COLOR, inline=False)
+            len(playlist.playque), total_runtime), color=config.EMBED_COLOR)
 
         in_queue_formats = []
         for counter, song in enumerate(list(playlist.playque)[:config.MAX_SONG_PRELOAD], start=1):
