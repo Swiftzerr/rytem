@@ -31,6 +31,7 @@ class AudioController(object):
         self.filters = []
 
         self.timer = utils.Timer(self.timeout_handler)
+        self.ctx = None
 
     @property
     def volume(self):
@@ -139,7 +140,7 @@ class AudioController(object):
         for song in list(self.playlist.playque)[:config.MAX_SONG_PRELOAD]:
             asyncio.ensure_future(self.preload(song))
 
-    async def process_song(self, track):
+    async def process_song(self, track, ctx):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
 
         host = linkutils.identify_url(track)
@@ -154,7 +155,7 @@ class AudioController(object):
                 print("Playing {}".format(track))
 
             song = Song(linkutils.Origins.Playlist,
-                        linkutils.Sites.Unknown)
+                        linkutils.Sites.Unknown, ctx=ctx)
             return song
 
         if host == linkutils.Sites.Unknown:
@@ -193,7 +194,7 @@ class AudioController(object):
             thumbnail = None
 
         song = Song(linkutils.Origins.Default, host, base_url=r.get('url'), uploader=r.get('uploader'), title=r.get(
-            'title'), duration=r.get('duration'), webpage_url=r.get('webpage_url'), thumbnail=thumbnail)
+            'title'), duration=r.get('duration'), webpage_url=r.get('webpage_url'), thumbnail=thumbnail, ctx=ctx)
 
         self.playlist.add(song)
         if self.current_song == None:

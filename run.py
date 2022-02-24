@@ -81,4 +81,4 @@ async def register(guild):
                         print(e)
 
 
-bot.run(config.BOT_TOKEN, bot=True, reconnect=True)
+bot.run(config.BOT_TOKEN, reconnect=True)

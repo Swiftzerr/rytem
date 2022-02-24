@@ -6,6 +6,22 @@ from discord.ext import commands
 from musicbot import linkutils, utils
 
 
+class Emojis():
+    loop = "\U0001F501"
+    no = "\u274C"
+    play = "\u25B6"
+    down_arrow = "\u2935"
+    check = "\u2705"
+
+
+def send_message(ctx, message):
+    a = ctx.respond(embed=discord.Embed(title=message, color=config.EMBED_COLOR))
+    return a
+
+async def find_filters(ctx):
+    return [filters for filters in config.FILTERS]
+
+
 class Music(commands.Cog):
     """ A collection of the commands related to music playback.
 
@@ -16,17 +32,17 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='play', description=config.HELP_YT_LONG, help=config.HELP_YT_SHORT, aliases=['p', 'yt', 'pl'])
-    async def _play_song(self, ctx, *, track: str):
+    @commands.slash_command(description="Plays a song")
+    async def play(self, ctx: commands.Context, *, song: discord.commands.Option(str, "Song or url to play")):
 
-        current_guild = utils.get_guild(self.bot, ctx.message)
+        current_guild = ctx.guild
         audiocontroller = utils.guild_to_audiocontroller[current_guild]
 
         if(await utils.is_connected(ctx) == None):
             if await audiocontroller.uconnect(ctx) == False:
                 return
 
-        if track.isspace() or not track:
+        if song.isspace() or not song:
             return
 
         if await utils.play_check(ctx) == False:
@@ -37,93 +53,72 @@ class Music(commands.Cog):
         audiocontroller.timer = utils.Timer(audiocontroller.timeout_handler)
 
         if audiocontroller.playlist.loop == True:
-            await ctx.send("Loop is enabled! Use {}loop to disable".format(config.BOT_PREFIX))
+            await send_message(ctx, Emojis.no + " Cannot add songs to queue while looping is enabled")
             return
 
-        song = await audiocontroller.process_song(track)
+        song = await audiocontroller.process_song(song, ctx)
 
         if song is None:
-            await ctx.send(config.SONGINFO_ERROR)
+            await ctx.respond(config.SONGINFO_ERROR)
             return
 
         if song.origin == linkutils.Origins.Default:
 
             if audiocontroller.current_song != None and len(audiocontroller.playlist.playque) == 0:
-                await ctx.send(embed=song.info.format_output(config.SONGINFO_NOW_PLAYING))
+                await ctx.respond(embed=song.info.format_output(config.SONGINFO_NOW_PLAYING))
             else:
-                await ctx.send(embed=song.info.format_output(config.SONGINFO_QUEUE_ADDED))
+                await ctx.respond(embed=song.info.format_output(config.SONGINFO_QUEUE_ADDED))
 
         elif song.origin == linkutils.Origins.Playlist:
-            await ctx.send(config.SONGINFO_PLAYLIST_QUEUED)
+            await ctx.respond(config.SONGINFO_PLAYLIST_QUEUED)
 
-    @commands.command(name='loop', description=config.HELP_LOOP_LONG, help=config.HELP_LOOP_SHORT, aliases=['l'])
-    async def _loop(self, ctx):
+    @commands.slash_command(description="Toggles song looping")
+    async def loop(self, ctx: commands.Context):
 
-        current_guild = utils.get_guild(self.bot, ctx.message)
+        current_guild = ctx.guild
         audiocontroller = utils.guild_to_audiocontroller[current_guild]
 
         if await utils.play_check(ctx) == False:
             return
 
         if len(audiocontroller.playlist.playque) < 1 and current_guild.voice_client.is_playing() == False:
-            await ctx.send("No songs in queue!")
+            await ctx.respond("No songs in queue!")
             return
 
         if audiocontroller.playlist.loop == False:
             audiocontroller.playlist.loop = True
-            await ctx.send("Loop enabled :arrows_counterclockwise:")
+            await send_message(ctx, Emojis.loop + " Enabled")
         else:
             audiocontroller.playlist.loop = False
-            await ctx.send("Loop disabled :x:")
-
-    @commands.command(name='shuffle', description=config.HELP_SHUFFLE_LONG, help=config.HELP_SHUFFLE_SHORT, aliases=["sh"])
-    async def _shuffle(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
-        audiocontroller = utils.guild_to_audiocontroller[current_guild]
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-        if current_guild.voice_client is None or not current_guild.voice_client.is_playing():
-            await ctx.send("Queue is empty :x:")
-            return
-
-        audiocontroller.playlist.shuffle()
-        await ctx.send("Shuffled queue :twisted_rightwards_arrows:")
-
-        for song in list(audiocontroller.playlist.playque)[:config.MAX_SONG_PRELOAD]:
-            asyncio.ensure_future(audiocontroller.preload(song))
+            await send_message(ctx, Emojis.loop + " Disabled")
 
     @commands.command(name='pause', description=config.HELP_PAUSE_LONG, help=config.HELP_PAUSE_SHORT)
-    async def _pause(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
+    async def pause(self, ctx):
+        current_guild = ctx.guild
 
         if await utils.play_check(ctx) == False:
             return
 
         if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
+            await ctx.respond(config.NO_GUILD_MESSAGE)
             return
         if current_guild.voice_client is None or not current_guild.voice_client.is_playing():
             return
         current_guild.voice_client.pause()
-        await ctx.send("Playback Paused :pause_button:")
+        await send_message(ctx, ":pause_button: Paused")
 
-    @commands.command(name='queue', description=config.HELP_QUEUE_LONG, help=config.HELP_QUEUE_SHORT, aliases=['playlist', 'q'])
-    async def _queue(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
+    @commands.slash_command(description="Shows the songs in the current queue")
+    async def queue(self, ctx):
+        current_guild = ctx.guild
 
         if await utils.play_check(ctx) == False:
             return
 
         if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
+            await ctx.respond(config.NO_GUILD_MESSAGE)
             return
         if current_guild.voice_client is None or not current_guild.voice_client.is_playing():
-            await ctx.send("Queue is empty :x:")
+            await send_message(ctx, Emojis.no + " Nothing in the queue")
             return
 
         playlist = utils.guild_to_audiocontroller[current_guild].playlist
@@ -132,37 +127,31 @@ class Music(commands.Cog):
         if config.MAX_SONG_PRELOAD > 25:
             config.MAX_SONG_PRELOAD = 25
 
-        embed = discord.Embed(title=":scroll: Queue [{}]".format(
-            len(playlist.playque)), color=config.EMBED_COLOR, inline=False)
+        total_runtime = utils.format_time(
+            sum([int(song.info.duration if song.info.duration else 0) for song in list(playlist.playque)]))
 
+        embed = discord.Embed(title=":scroll: {} songs in queue | {} total length".format(
+            len(playlist.playque), total_runtime), color=config.EMBED_COLOR, inline=False)
+
+        in_queue_formats = []
         for counter, song in enumerate(list(playlist.playque)[:config.MAX_SONG_PRELOAD], start=1):
             if song.info.title is None:
-                embed.add_field(name="{}.".format(str(counter)), value="[{}]({})".format(
-                    song.info.webpage_url, song.info.webpage_url), inline=False)
+                in_queue_formats.append("`{}.` [{}]({}) `{}`".format(
+                    str(counter), song.info.webpage_url, song.info.webpage_url,
+                    utils.format_time(song.info.duration)))
             else:
-                embed.add_field(name="{}.".format(str(counter)), value="[{}]({})".format(
-                    song.info.title, song.info.webpage_url), inline=False)
+                in_queue_formats.append("`{}.` [{}]({}) `{}`".format(
+                    str(counter), song.info.title, song.info.webpage_url,
+                    utils.format_time(song.info.duration)))
 
-        await ctx.send(embed=embed)
+                if len(in_queue_formats):
+                    embed.description = '\n'.join(in_queue_formats)
 
-    @commands.command(name='stop', description=config.HELP_STOP_LONG, help=config. HELP_STOP_SHORT, aliases=['st'])
-    async def _stop(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
+        await ctx.respond(embed=embed)
 
-        if await utils.play_check(ctx) == False:
-            return
-
-        audiocontroller = utils.guild_to_audiocontroller[current_guild]
-        audiocontroller.playlist.loop = False
-        if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-        await utils.guild_to_audiocontroller[current_guild].stop_player()
-        await ctx.send("Stopped all sessions :octagonal_sign:")
-
-    @commands.command(name='skip', description=config.HELP_SKIP_LONG, help=config.HELP_SKIP_SHORT, aliases=['s'])
-    async def _skip(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
+    @commands.slash_command(description="Votes to skip the song")
+    async def skip(self, ctx):
+        current_guild = ctx.guild
 
         if await utils.play_check(ctx) == False:
             return
@@ -174,18 +163,18 @@ class Music(commands.Cog):
         audiocontroller.timer = utils.Timer(audiocontroller.timeout_handler)
 
         if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
+            await ctx.respond(config.NO_GUILD_MESSAGE)
             return
         if current_guild.voice_client is None or (
                 not current_guild.voice_client.is_paused() and not current_guild.voice_client.is_playing()):
-            await ctx.send("Queue is empty :x:")    
+            await send_message(ctx, Emojis.no + " Nothing in the queue")
             return
         current_guild.voice_client.stop()
-        await ctx.send("Skipped current song :fast_forward:")
+        await send_message(ctx, ":fast_forward: Skipped song")
 
-    @commands.command(name='clear', description=config.HELP_CLEAR_LONG, help=config.HELP_CLEAR_SHORT, aliases=['cl'])
-    async def _clear(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
+    @commands.slash_command(description="Clears the queue")
+    async def clear(self, ctx):
+        current_guild = ctx.guild
 
         if await utils.play_check(ctx) == False:
             return
@@ -194,125 +183,53 @@ class Music(commands.Cog):
         audiocontroller.clear_queue()
         current_guild.voice_client.stop()
         audiocontroller.playlist.loop = False
-        await ctx.send("Cleared queue :no_entry_sign:")
+        await send_message(ctx, ":no_entry_sign: Cleared queue")
 
-    @commands.command(name='prev', description=config.HELP_PREV_LONG, help=config.HELP_PREV_SHORT, aliases=['back'])
-    async def _prev(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        audiocontroller = utils.guild_to_audiocontroller[current_guild]
-        audiocontroller.playlist.loop = False
-
-        audiocontroller.timer.cancel()
-        audiocontroller.timer = utils.Timer(audiocontroller.timeout_handler)
-
-        if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-        await utils.guild_to_audiocontroller[current_guild].prev_song()
-        await ctx.send("Playing previous song :track_previous:")
-
-    @commands.command(name='resume', description=config.HELP_RESUME_LONG, help=config.HELP_RESUME_SHORT)
-    async def _resume(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-        current_guild.voice_client.resume()
-        await ctx.send("Resumed playback :arrow_forward:")
-
-    @commands.command(name='songinfo', description=config.HELP_SONGINFO_LONG, help=config.HELP_SONGINFO_SHORT, aliases=["np"])
-    async def _songinfo(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-        song = utils.guild_to_audiocontroller[current_guild].current_song
-        if song is None:
-            return
-        await ctx.send(embed=song.info.format_output(config.SONGINFO_SONGINFO))
-
-    @commands.command(name='history', description=config.HELP_HISTORY_LONG, help=config.HELP_HISTORY_SHORT)
-    async def _history(self, ctx):
-        current_guild = utils.get_guild(self.bot, ctx.message)
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        if current_guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-        await ctx.send(utils.guild_to_audiocontroller[current_guild].track_history())
-
-    @commands.command(name='volume', aliases=["vol"], description=config.HELP_VOL_LONG, help=config.HELP_VOL_SHORT)
-    async def _volume(self, ctx, *args):
-        if ctx.guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        if len(args) == 0:
-            await ctx.send("Current volume: {}% :speaker:".format(utils.guild_to_audiocontroller[ctx.guild]._volume))
-            return
-
-        try:
-            volume = args[0]
-            volume = int(volume)
-            if volume > 100 or volume < 0:
-                raise Exception('')
-            current_guild = utils.get_guild(self.bot, ctx.message)
-
-            if utils.guild_to_audiocontroller[current_guild]._volume >= volume:
-                await ctx.send('Volume set to {}% :sound:'.format(str(volume)))
-            else:
-                await ctx.send('Volume set to {}% :loud_sound:'.format(str(volume)))
-            utils.guild_to_audiocontroller[current_guild].volume = volume
-        except:
-            await ctx.send("Error: Volume must be a number 1-100")
-
-    @commands.command(name='filter', description=config.HELP_FILTER_LONG, help=config.HELP_FILTER_SHORT)
-    async def _filter(self, ctx, *args):
+    @commands.slash_command(description="Applies nightcore to the music")
+    async def nightcore(self, ctx):
         audiocontroller = utils.guild_to_audiocontroller[ctx.guild]
-
-        if ctx.guild is None:
-            await ctx.send(config.NO_GUILD_MESSAGE)
-            return
-
-        if await utils.play_check(ctx) == False:
-            return
-
-        if len(args) == 0:
-            await ctx.send(f':information_source: | Current filters: `{", ".join(audiocontroller.filters)}`')
-            return
-
-        if args[0] == 'off':
-            audiocontroller.filters = []
+        if "nightcore" not in audiocontroller.filters:
+            audiocontroller.filters.append("nightcore")
             await audiocontroller.restart_player()
-            await ctx.send(':no_entry_sign: | All filters disabled!')
-        elif args[0] in config.FILTERS:
-            if args[0] not in audiocontroller.filters:
-                audiocontroller.filters.append(args[0])
-                await audiocontroller.restart_player()
-                await ctx.send(f':notes: | Filter `{args[0]}` enabled!')
-            else:
-                audiocontroller.filters.remove(args[0])
-                await audiocontroller.restart_player()
-                await ctx.send(f':no_entry_sign: | Filter `{args[0]}` disabled!')
+            await send_message(ctx, Emojis.check + " Enabled Nightcore")
         else:
-            await ctx.send(":warning: | Invalid filter!")
+            audiocontroller.filters.remove("nightcore")
+            await audiocontroller.restart_player()
+            await send_message(ctx, Emojis.no + " Disabled Nightcore")
+
+
+    # @commands.slash_command(description="Applies a filter to music")
+    # async def filter(self, ctx, *, arg: discord.commands.Option(str, "Filter name", name="filter", autocomplete=find_filters)):
+    #     audiocontroller = utils.guild_to_audiocontroller[ctx.guild]
+    #     arg = arg.split()
+    #     print(arg)
+    #     print(arg[0])
+    #     if ctx.guild is None:
+    #         await ctx.respond(config.NO_GUILD_MESSAGE)
+    #         return
+    #
+    #     if await utils.play_check(ctx) == False:
+    #         return
+    #
+    #     if len(arg) == 0:
+    #         await ctx.respond(f':information_source: | Current filters: `{", ".join(audiocontroller.filters)}`')
+    #         return
+    #
+    #     if arg[0] == 'off':
+    #         audiocontroller.filters = []
+    #         await audiocontroller.restart_player()
+    #         await ctx.respond(':no_entry_sign: | All filters disabled!')
+    #     elif arg[0] in config.FILTERS:
+    #         if arg[0] not in audiocontroller.filters:
+    #             audiocontroller.filters.append(arg[0])
+    #             await audiocontroller.restart_player()
+    #             await ctx.respond(f':notes: | Filter `{arg[0]}` enabled!')
+    #         else:
+    #             audiocontroller.filters.remove(arg[0])
+    #             await audiocontroller.restart_player()
+    #             await ctx.respond(f':no_entry_sign: | Filter `{arg[0]}` disabled!')
+    #     else:
+    #         await ctx.respond(":warning: | Invalid filter!")
 
 def setup(bot):
     bot.add_cog(Music(bot))

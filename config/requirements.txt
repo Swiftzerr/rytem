@@ -1,4 +1,4 @@
-discord
+py-cord==2.0.0b4
 yt-dlp
 beautifulsoup4
 spotipy

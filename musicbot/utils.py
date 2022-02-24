@@ -10,13 +10,7 @@ guild_to_settings = {}
 
 def get_guild(bot, command):
     """Gets the guild a command belongs to. Useful, if the command was sent via pm."""
-    if command.guild is not None:
-        return command.guild
-    for guild in bot.guilds:
-        for channel in guild.voice_channels:
-            if command.author in channel.members:
-                return guild
-    return None
+    return bot.get_guild(command)
 
 
 async def connect_to_channel(guild, dest_channel_name, ctx, switch=False, default=True):
@@ -33,7 +27,7 @@ async def connect_to_channel(guild, dest_channel_name, ctx, switch=False, defaul
                 try:
                     await guild.voice_client.disconnect()
                 except:
-                    await ctx.send(config.NOT_CONNECTED_MESSAGE)
+                    await ctx.respond(config.NOT_CONNECTED_MESSAGE)
 
             await channel.connect()
             return
@@ -42,9 +36,9 @@ async def connect_to_channel(guild, dest_channel_name, ctx, switch=False, defaul
         try:
             await guild.voice_channels[0].connect()
         except:
-            await ctx.send(config.DEFAULT_CHANNEL_JOIN_FAILED)
+            await ctx.respond(config.DEFAULT_CHANNEL_JOIN_FAILED)
     else:
-        await ctx.send(config.CHANNEL_NOT_FOUND_MESSAGE + str(dest_channel_name))
+        await ctx.respond(config.CHANNEL_NOT_FOUND_MESSAGE + str(dest_channel_name))
 
 
 async def is_connected(ctx):
@@ -64,19 +58,34 @@ async def play_check(ctx):
 
     if cm_channel != None:
         if cm_channel != ctx.message.channel.id:
-            await ctx.send(config.WRONG_CHANNEL_MESSAGE)
+            await ctx.respond(config.WRONG_CHANNEL_MESSAGE)
             return False
 
     if vc_rule == True:
-        author_voice = ctx.message.author.voice
-        bot_vc = ctx.guild.voice_client.channel
+        author_voice = ctx.author.voice.channel
+        bot_vc = ctx.voice_client.channel
         if author_voice == None:
-            await ctx.send(config.USER_NOT_IN_VC_MESSAGE)
+            await ctx.respond("gfdgdfg")
             return False
-        elif ctx.message.author.voice.channel != bot_vc:
-            await ctx.send(config.USER_NOT_IN_VC_MESSAGE)
+        elif ctx.author.voice.channel != bot_vc:
+            await ctx.respond("gfdgdf")
             return False
 
+def format_time(duration):
+    if not duration:
+        return "00:00"
+
+    hours = duration // 60 // 60
+    minutes = duration // 60 % 60
+    seconds = duration % 60
+
+    # Looks like `h:mm:ss`
+    return "{}{}{:02d}:{:02d}".format(
+        hours if hours else "",
+        ":" if hours else "",
+        minutes,
+        seconds
+    )
 
 class Timer:
     def __init__(self, callback):

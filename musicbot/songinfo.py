@@ -5,37 +5,26 @@ from config import config
 
 
 class Song():
-    def __init__(self, origin, host, base_url=None, uploader=None, title=None, duration=None, webpage_url=None, thumbnail=None):
+    def __init__(self, origin, host, base_url=None, uploader=None, title=None, duration=None, webpage_url=None, thumbnail=None, ctx=None):
         self.host = host
         self.origin = origin
         self.base_url = base_url
         self.info = self.Sinfo(uploader, title, duration,
-                               webpage_url, thumbnail)
+                               webpage_url, thumbnail, ctx)
 
     class Sinfo:
-        def __init__(self, uploader, title, duration, webpage_url, thumbnail):
+        def __init__(self, uploader, title, duration, webpage_url, thumbnail, ctx):
             self.uploader = uploader
             self.title = title
             self.duration = duration
             self.webpage_url = webpage_url
             self.thumbnail = thumbnail
             self.output = ""
+            self.requester = ctx.author
 
         def format_output(self, playtype):
 
-            embed = discord.Embed(title=playtype, description="[{}]({})".format(self.title, self.webpage_url), color=config.EMBED_COLOR)
-
-            if self.thumbnail is not None:
-                embed.set_thumbnail(url=self.thumbnail)
-
-            embed.add_field(name=config.SONGINFO_UPLOADER,
-                            value=self.uploader, inline=False)
-
-            if self.duration is not None:
-                embed.add_field(name=config.SONGINFO_DURATION,
-                                value="{}".format(str(datetime.timedelta(seconds=self.duration))), inline=False)
-            else:
-                embed.add_field(name=config.SONGINFO_DURATION,
-                                value=config.SONGINFO_UNKNOWN_DURATION , inline=False)
-
+            embed = discord.Embed(title=playtype, description="**" + self.title + "**", color=config.EMBED_COLOR)
+            embed.timestamp = datetime.datetime.now()
+            embed.set_footer(text="Requested by: " + self.requester.name, icon_url=self.requester.avatar)
             return embed
