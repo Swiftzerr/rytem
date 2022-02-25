@@ -8,16 +8,11 @@ from musicbot.audiocontroller import AudioController
 from musicbot.settings import Settings
 from musicbot.utils import guild_to_audiocontroller, guild_to_settings
 
-initial_extensions = ['musicbot.commands.music',
-                      'musicbot.commands.general', 'musicbot.plugins.button']
-bot = commands.Bot(command_prefix=config.BOT_PREFIX,
-                   pm_help=True, case_insensitive=True)
+initial_extensions = ['musicbot.commands.music', 'musicbot.commands.general']
+bot = commands.Bot()
 
 
 if __name__ == '__main__':
-
-    config.ABSOLUTE_PATH = os.path.dirname(os.path.abspath(__file__))
-    config.COOKIE_PATH = config.ABSOLUTE_PATH + config.COOKIE_PATH
 
     if config.BOT_TOKEN == "":
         print("Error: No bot token!")
@@ -32,19 +27,18 @@ if __name__ == '__main__':
 
 @bot.event
 async def on_ready():
-    print(config.STARTUP_MESSAGE)
-    await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="Omg Rytem Recode"))
+    print("Starting le bot\n\n\n")
+    print("In servers:\n\n")
+    await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="Hentai Ballons TM"))
 
     for guild in bot.guilds:
         await register(guild)
-        print("Joined {}".format(guild.name))
-
-    print(config.STARTUP_COMPLETE_MESSAGE)
+        print("Server: {}\n".format(guild.name))
 
 
 @bot.event
 async def on_guild_join(guild):
-    print(guild.name)
+    print("\nJust joined server: " + guild.name)
     await register(guild)
 
 
@@ -59,9 +53,6 @@ async def register(guild):
         await guild.me.edit(nick=sett.get('default_nickname'))
     except:
         pass
-
-    if config.GLOBAL_DISABLE_AUTOJOIN_VC == True:
-        return
 
     vc_channels = guild.voice_channels
 
@@ -80,5 +71,5 @@ async def register(guild):
                     except Exception as e:
                         print(e)
 
-
+config.COOKIE_PATH = os.path.dirname(os.path.abspath(__file__)) + config.COOKIE_PATH
 bot.run(config.BOT_TOKEN, reconnect=True)

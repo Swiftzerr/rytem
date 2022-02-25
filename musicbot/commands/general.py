@@ -17,25 +17,6 @@ class General(commands.Cog):
         audiocontroller = utils.guild_to_audiocontroller[current_guild]
         await audiocontroller.udisconnect()
 
-    @commands.slash_command(description="Change server settings (Admin required)")
-    async def settings(self, ctx, setting, value):
-
-        sett = guild_to_settings[ctx.guild]
-
-        if len(args) == 0:
-            await ctx.send(embed=await sett.format())
-            return
-
-        args_list = list(args)
-        args_list.remove(args[0])
-
-        response = await sett.write(args[0], " ".join(args_list), ctx)
-
-        if response is None:
-            await ctx.send("`Error: Setting not found`")
-        elif response is True:
-            await ctx.send("Setting updated!")
-
 
 def setup(bot):
     bot.add_cog(General(bot))

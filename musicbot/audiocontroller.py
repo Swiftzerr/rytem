@@ -100,13 +100,13 @@ class AudioController(object):
 
             try:
                 downloader = yt_dlp.YoutubeDL(
-                    {'format': 'bestaudio', 'title': True, "cookiefile": config.COOKIE_PATH})
+                    {'format': 'bestaudio', 'title': True, "cookiefile": "/config/cookies/cookies.txt"})
                 r = downloader.extract_info(
                     song.info.webpage_url, download=False)
             except:
                 asyncio.wait(1)
                 downloader = yt_dlp.YoutubeDL(
-                    {'title': True, "cookiefile": config.COOKIE_PATH})
+                    {'title': True, "cookiefile": "/config/cookies/cookies.txt"})
                 r = downloader.extract_info(
                     track, download=False)
 
@@ -173,7 +173,7 @@ class AudioController(object):
 
         try:
             downloader = yt_dlp.YoutubeDL(
-                {'format': 'bestaudio', 'title': True, "cookiefile": config.COOKIE_PATH})
+                {'format': 'bestaudio', 'title': True, "cookiefile": "/config/cookies/cookies.txt"})
 
             try:
                 r = downloader.extract_info(
@@ -183,7 +183,7 @@ class AudioController(object):
                     return None
         except:
             downloader = yt_dlp.YoutubeDL(
-                {'title': True, "cookiefile": config.COOKIE_PATH})
+                {'title': True, "cookiefile": "/config/cookies/cookies.txt"})
             r = downloader.extract_info(
                 track, download=False)
 
@@ -217,7 +217,7 @@ class AudioController(object):
             options = {
                 'format': 'bestaudio/best',
                 'extract_flat': True,
-                "cookiefile": config.COOKIE_PATH
+                "cookiefile": "/config/cookies/cookies.txt"
             }
 
             with yt_dlp.YoutubeDL(options) as ydl:
@@ -274,7 +274,7 @@ class AudioController(object):
                 return None
 
             downloader = yt_dlp.YoutubeDL(
-                {'format': 'bestaudio', 'title': True, "cookiefile": config.COOKIE_PATH})
+                {'format': 'bestaudio', 'title': True, "cookiefile": "/config/cookies/cookies.txt"})
             r = downloader.extract_info(
                 song.info.webpage_url, download=False)
             song.base_url = r.get('url')
@@ -303,7 +303,7 @@ class AudioController(object):
             'format': 'bestaudio/best',
             'default_search': 'auto',
             'noplaylist': True,
-            "cookiefile": config.COOKIE_PATH
+            "cookiefile": "/config/cookies/cookies.txt"
         }
 
         with yt_dlp.YoutubeDL(options) as ydl:

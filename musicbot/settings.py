@@ -23,7 +23,7 @@ class Settings():
             "user_must_be_in_vc": True,
             "button_emote": "",
             "default_volume": 100,
-            "vc_timeout": config.VC_TIMOUT_DEFAULT
+            "vc_timeout": 300
         }
 
         self.reload()
@@ -236,10 +236,6 @@ class Settings():
         self.config[setting] = value
 
     async def vc_timeout(self, setting, value, ctx):
-
-        if config.ALLOW_VC_TIMEOUT_EDIT == False:
-            await ctx.send("`Error: This value cannot be modified".format(config.BOT_PREFIX, setting))
-
         if value.lower() == "true":
             self.config[setting] = True
             self.config['start_voice_channel'] = None
